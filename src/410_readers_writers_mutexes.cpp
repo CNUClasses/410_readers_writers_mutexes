@@ -10,6 +10,8 @@
 #include <thread>
 #include <mutex>
 #include <string>
+#include <chrono>
+#include <vector>
 
 #include "ReaderWriterlock.h"
 
@@ -31,15 +33,23 @@ void reader(int i){
 	int nr = NUMB_ROUNDS;
 		
 	report(string("     Reader" + to_string(i) + " starting"));
-	rwl.read();
+		
+	//lots of work
+	rwl.read();			//first lock out writers (but can have multiple readers)
+	report(string("     Reader" + to_string(i) + " locked out writers"));
 
-	//lots of cycles
-	while(nr-- >0)		
-		report(string("     Reader" + to_string(i) + " reading"));
+	//now all of this is doable by multiple threads
+	//without the cost of locking anything
+	while(nr-- >0)	{	
+		if (nr%10==0)report(string("     Reader" + to_string(i) + " finished 10 reads"));
 
-	rwl.read_done();
-				
-	report(string("     Reader" + to_string(i) + " DONE! Writers allowed"));	
+		// delay to ensure thread overlap
+		this_thread::sleep_for(chrono::milliseconds(20));
+	}
+	
+	rwl.read_done();	//potentially let in writers
+					
+	report(string("     Reader" + to_string(i) + " DONE!"));	
 }
 
 void writer(int i){
@@ -51,24 +61,26 @@ void writer(int i){
 		//writer waits until signaled its OK
 		//then its the only thread in here
 		rwl.write();
-		report(string("Writer" + to_string(i) + " writing"));
-		//do lots of write ops here with the smug satisfaction that the readers cant get in at all
+		
+		//do lots of write ops here with the smug satisfaction 
+		//that the readers cant get in at all
+		if (nr%10==0) report(string("Writer" + to_string(i) + " finished 10 writes"));
+		
 		rwl.write_done();
 	}
 }
 
 int main() {
-	thread p5(writer, 5);
-	thread p1(reader, 1);
-	thread p2(reader, 2);
-	thread p3(reader, 3);
-	thread p4(reader, 4);
+	vector<thread> myThreads;
+	
+	myThreads.push_back(thread(writer, 0));
+	myThreads.push_back(thread(writer, 1));
 
-	p1.join();
-	p2.join();
-	p3.join();
-	p4.join();
-	p5.join();
-
+	for (int i=2;i<6;i++){
+		myThreads.push_back(thread(reader, i));
+	}
+	
+	for (auto &t:myThreads)
+		t.join();
     return 0;	
 }
