@@ -6,11 +6,12 @@
  */
 #include <iostream>
 #include <string>
-
 #include "ReaderWriterlock.h"
-#include "../PRINT/print_ts.h"
+#include "synchronizedcout.h"
 
 using namespace std;
+
+extern mutex mReport;	//VERY, VERY ugly but I need that mutex in order to synchronize cout
 
 const int NO_READERS= 0;
 
@@ -29,8 +30,11 @@ void Reader_Writer_lock::read() {
 
 	curReaders++;		//indicate there is a reader
 	
-	if (curReaders == 1)	//first reader 
+	if (curReaders == 1){
+		//first reader
+		report(string("First Reader locks out writers"));
 		mNoWriters.lock();	//then lock out writers
+	}
 }
 void Reader_Writer_lock::read_done() {
 	//one reader at a time in this block
@@ -39,9 +43,13 @@ void Reader_Writer_lock::read_done() {
 	lock_guard<mutex> lck(mCount);
 
 	curReaders--;		//indicate a leaving reader
-	if (curReaders == 0)	//if no readers 
+	if (curReaders == 0){
+		//if no readers
+		report(string("No more readers let in writers"));
 		mNoWriters.unlock();	//then let in the writers
-}
+		}
+	}
+
 
 //call when you want to write
 //blocks until mWriter.count >0
@@ -50,11 +58,14 @@ void Reader_Writer_lock::read_done() {
 //or a semaphore
 void Reader_Writer_lock::write() {
 	mNoWriters.lock();
+	report(string("Writer locks out readers"));
 }
 
 //call when you are ready to let readers back in
 //forget to call and you will probably deadlock
 void Reader_Writer_lock::write_done() {
+	report(string("Writer about to let readers in"));
 	mNoWriters.unlock();
 }
+
 
