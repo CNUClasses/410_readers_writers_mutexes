@@ -20,7 +20,7 @@ using namespace std;
 
 const int NUMB_ROUNDS = 100;
 const int READERS = 5;
-const int WRITERS = 2;
+const int WRITERS = 1;
 
 Reader_Writer_lock rwl;
 
@@ -69,10 +69,8 @@ int main() {
 	
 	//add writers writers
 	for (int i=0;i<WRITERS;i++){
-			myThreads.push_back(thread(reader, i));
-		}
-	myThreads.push_back(thread(writer, 0));
-	myThreads.push_back(thread(writer, 1));
+		myThreads.push_back(thread(writer, i));
+	}
 
 	//now for a bunch of readers
 	for (int i=WRITERS;i<READERS;i++){

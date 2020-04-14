@@ -8,8 +8,10 @@
 #ifndef READERWRITERLOCK_H_
 #define READERWRITERLOCK_H_
 #include <mutex>
-//#include "../../410_Semaphore_Lib/src/Semaphore.h"
-
+#define USE_SEMAPHORE
+#ifdef USE_SEMAPHORE
+#include "../../410_Semaphore_Lib/src/Semaphore.h"
+#endif
 
 class Reader_Writer_lock {
 public:
@@ -29,7 +31,12 @@ public:
 	void write_done();
 private:
 	int curReaders;	
+
+#ifdef USE_SEMAPHORE
+	Semaphore sNoWriters;
+#else
 	std::mutex mNoWriters;	//locks out writers
+#endif
 	std::mutex mCount;		//used to lock all access to curReaders
 };
 

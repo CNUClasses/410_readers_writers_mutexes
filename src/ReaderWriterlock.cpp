@@ -33,7 +33,11 @@ void Reader_Writer_lock::read() {
 	if (curReaders == 1){
 		//first reader
 		report(string("First Reader locks out writers"));
-		mNoWriters.lock();	//then lock out writers
+		#ifdef USE_SEMAPHORE
+			sNoWriters.wait();
+		#else
+			mNoWriters.lock();	//then lock out writers
+		#endif
 	}
 }
 void Reader_Writer_lock::read_done() {
@@ -46,7 +50,11 @@ void Reader_Writer_lock::read_done() {
 	if (curReaders == 0){
 		//if no readers
 		report(string("No more readers let in writers"));
-		mNoWriters.unlock();	//then let in the writers
+		#ifdef USE_SEMAPHORE
+			sNoWriters.signal();
+		#else
+			mNoWriters.unlock();	//then let in the writers
+		#endif
 		}
 	}
 
@@ -57,7 +65,11 @@ void Reader_Writer_lock::read_done() {
 //cannot use a plain mutex, must be recursive
 //or a semaphore
 void Reader_Writer_lock::write() {
-	mNoWriters.lock();
+	#ifdef USE_SEMAPHORE
+		sNoWriters.wait();
+	#else
+		mNoWriters.lock();	//then lock out writers
+	#endif
 	report(string("Writer locks out readers"));
 }
 
@@ -65,7 +77,11 @@ void Reader_Writer_lock::write() {
 //forget to call and you will probably deadlock
 void Reader_Writer_lock::write_done() {
 	report(string("Writer about to let readers in"));
-	mNoWriters.unlock();
+	#ifdef USE_SEMAPHORE
+		sNoWriters.signal();
+	#else
+		mNoWriters.unlock();	//then let in the writers
+	#endif
 }
 
 
